@@ -1,5 +1,7 @@
 ---
 
+controller_vm_uuid: 93e12a0c-0540-4a08-9445-9b590d5fa590
+compute_vm_uuid: 81d73420-0f4c-5635-89e6-307ffe9f3f2a
 
 ubuntu_template: ubuntu16.04
 # This network for Bridge interface of host machine
