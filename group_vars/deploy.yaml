@@ -1,0 +1,7 @@
+---
+
+- hosts: xenserver
+  vars_files:
+    - group_vars/all
+  roles:
+    - 1-vm-facts

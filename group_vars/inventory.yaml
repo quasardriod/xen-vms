@@ -1,0 +1,1 @@
+xenserver ansible_ssh_host=10.71.152.104 ansible_ssh_user=root ansible_ssh_pass=xenroot
