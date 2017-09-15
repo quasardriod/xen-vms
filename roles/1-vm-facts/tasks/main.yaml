@@ -1,0 +1,64 @@
+---
+
+- name: Get controller name
+  shell: xe vm-list uuid={{controller_vm_uuid}} |awk ' FNR==2 {print $4}'
+  register: controller_vm_name
+- debug:
+    var: controller_vm_name.stdout
+
+- name: Get controller IP
+  shell: xe vm-list uuid={{controller_vm_uuid}} params=all|grep -i networks|awk '{print $4}'|cut -d';' -f1
+  register: controller_ip
+- debug:
+    var: controller_ip.stdout
+
+- name: Get compute name
+  shell: xe vm-list uuid={{compute_vm_uuid}} |awk ' FNR==2 {print $4}'
+  register: compute_vm_name
+- debug:
+    var: compute_vm_name.stdout
+
+- name: Get compute IP
+  shell: xe vm-list uuid={{compute_vm_uuid}} params=all|grep -i networks|awk '{print $4}'|cut -d';' -f1
+  register: compute_ip
+- debug:
+    var: compute_ip.stdout
+
+#- name: Set name-label of VMs
+#  shell: xe vm-param-set uuid={{item.vm_uuid}} name-label={{item.vm_name}}-{{item.vm_ip}}
+#  with_items:
+#    - { vm_uuid: "{{controller_vm_uuid}}", vm_name: "{{controller_vm_name.stdout}}", vm_ip: "{{controller_ip.stdout}}" }
+#    - { vm_uuid: "{{compute_vm_uuid}}", vm_name: "{{compute_vm_name.stdout}}", vm_ip: "{{compute_ip.stdout}}" }
+
+#- name: Write machines details in local inventory file
+#  add_host:
+#     hostname: "{{item}}"
+#     ansible_host: "{{inventory_hostname }}"
+#  with_items:
+#    - "{{controller_ip.stdout}}"
+#    - "{{compute_ip.stdout}}"
+#  register: host_inventory
+
+
+- name: Get controller inventory params
+  shell: echo {{controller_vm_name.stdout}} ansible_host={{controller_ip.stdout}}  
+  delegate_to: localhost
+  register: controller_inventory
+- debug:
+    var: controller_inventory.stdout
+  
+   
+- name: Get compute inventory params
+  shell: echo {{compute_vm_name.stdout}} ansible_host={{compute_ip.stdout}}  
+  delegate_to: localhost
+  register: compute_inventory
+- debug:
+    var: compute_inventory.stdout
+ 
+- name: Write machines details in local inventory file
+  shell: |
+    cat > $PWD/os-inventory.yaml <<EOF
+    "{{controller_inventory.stdout}}"
+    "{{compute_inventory.stdout}}"
+    EOF
+  deligate_to: loalhost
