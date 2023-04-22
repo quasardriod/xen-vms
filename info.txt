@@ -1,0 +1,68 @@
+- name: Generate SSH key pair
+  ansible.posix.ssh_keypair:
+    path: "/home/{{ ansible_user }}/ssh_keys/id_rsa"
+    passphrase: "{{ lookup('password', '/dev/null length=16') }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+
+- name: Update Ansible Automation Platform credential with new private key and passphrase
+  hosts: localhost
+  gather_facts: false
+  vars:
+    api_url: "https://your.ansible.automation.platform/api/v2"
+    credential_name: "my_credential"
+    new_private_key_file: "/home/{{ ansible_user }}/ssh_keys/id_rsa"
+  tasks:
+    - name: Read the new private key from file
+      ansible.builtin.shell:
+        cmd: cat "{{ new_private_key_file }}"
+      register: new_private_key
+
+    - name: Get the credential ID
+      uri:
+        url: "{{ api_url }}/credentials/"
+        method: GET
+        return_content: yes
+        headers:
+          Content-Type: "application/json"
+        params:
+          name: "{{ credential_name }}"
+          kind: Machine
+      register: credential_data
+
+    - name: Update the credential
+      uri:
+        url: "{{ api_url }}/credentials/{{ credential_data.json.results[0].id }}/"
+        method: GET
+        return_content: yes
+        headers:
+          Content-Type: "application/json"
+      register: credential_update_data
+
+    - name: Set the new private key and passphrase in the credential data
+      set_fact:
+        credential_update_data: "{{ credential_update_data.json }}"
+      vars:
+        new_passphrase: "{{ lookup('password', '/dev/null length=16') }}"
+      set_fact:
+        credential_update_data.inputs.ssh_key_data.ssh_key_unlock: "{{ new_passphrase }}"
+        credential_update_data.inputs.ssh_key_data.private_key: "{{ new_private_key.stdout }}"
+
+    - name: Update the credential with the new private key and passphrase
+      uri:
+        url: "{{ api_url }}/credentials/{{ credential_data.json.results[0].id }}/"
+        method: PUT
+        body_format: json
+        headers:
+          Content-Type: "application/json"
+        body: "{{ credential_update_data }}"
+      register: credential_update_response
+
+    - name: Check if the credential update was successful
+      assert:
+        that:
+          - credential_update_response.status == 200
+          - credential_update_response.json.id == credential_data.json.results[0].id
+      success_msg: "Private key and passphrase updated for credential {{ credential_name }}"
+      fail_msg: "Failed to update private key and passphrase for credential {{ credential_name }}. Error message: {{ credential_update_response.json }}"
