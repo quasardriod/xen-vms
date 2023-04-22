@@ -1,3 +1,18 @@
+- name: Create SSH key with passphrase
+  hosts: your_server
+  
+  tasks:
+    - name: Generate passphrase
+      random_string:
+        length: 20
+        chars: "{{ 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=' }}"
+      register: passphrase_result
+
+    - name: Generate SSH key
+      ssh-keygen:
+        path: "/home/your_user/.ssh/id_rsa"
+        passphrase: "{{ passphrase_result.result }}"
+
 - name: Generate SSH key pair
   ansible.posix.ssh_keypair:
     path: "/home/{{ ansible_user }}/ssh_keys/id_rsa"
