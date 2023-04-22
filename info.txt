@@ -4,7 +4,7 @@
   tasks:
     - name: Generate passphrase
       random_string:
-        length: 20
+        length: 16
         chars: "{{ 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=' }}"
       register: passphrase_result
 
@@ -13,13 +13,6 @@
         path: "/home/your_user/.ssh/id_rsa"
         passphrase: "{{ passphrase_result.result }}"
 
-- name: Generate SSH key pair
-  ansible.posix.ssh_keypair:
-    path: "/home/{{ ansible_user }}/ssh_keys/id_rsa"
-    passphrase: "{{ lookup('password', '/dev/null length=16') }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0600'
 
 - name: Update Ansible Automation Platform credential with new private key and passphrase
   hosts: localhost
